@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Job Posting App
 
-## Getting Started
+This is a [Next.js](https://nextjs.org) project with full-featured authentication and job posting, using Supabase and ShadcnUI.
 
-First, run the development server:
+Use PNPM is recommended, but you can still use yarn or npm.
+This project was tested on node version v22.17.0.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## How to Run and Deploy
+
+### 1. Supabase Setup
+- Create a project at [supabase.com](https://supabase.com)
+- In your Supabase dashboard, go to **Settings > API** and copy your project URL and anon key
+- Run this script to allow system to peform existing account validation
+```sql
+CREATE OR REPLACE VIEW public.user_profiles
+WITH (security_invoker = of) AS
+SELECT 
+  id,
+  email,
+  COALESCE(raw_user_meta_data->>'full_name', '') as full_name,
+  raw_user_meta_data->>'avatar_url' as avatar_url,
+  confirmed_at,
+  created_at,
+  updated_at,
+  last_sign_in_at
+FROM auth.users;
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Environment Variables
+Create a `.env.local` file in the root directory:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+NEXT_PUBLIC_SUPABASE_URL=SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=ANON_KEY
+NEXT_SUPABASE_SERVICE_ROLE_KEY=ROLE_KEY
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Install Dependencies & Run
 
-## Learn More
+```bash
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Authentication Features
+- User registration and login (Supabase Auth)
+- Email verification
+- Secure session management (httpOnly cookies)
+- Protected routes with middleware
+- ShadcnUI components for all auth and UI
+- Server actions for all backend logic
+- React hooks for client-side state
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## File Structure (Key Parts)
+```
+app/
+  auth/         # Auth pages (login, signup, callback)
+  dashboard/    # Protected dashboard
+components/
+  auth/         # Auth UI components
+  layout/       # Header, layout
+  ui/           # ShadcnUI components
+hooks/          # use-auth, use-job-posts, etc.
+lib/
+  auth/         # Auth server actions
+  supabase/     # Supabase client/server
+middleware.ts   # Route protection
+```
 
-## Deploy on Vercel
+## Usage Examples
+- **Protect a page:**
+  ```ts
+  import { getUser } from '@/lib/auth/actions'
+  import { redirect } from 'next/navigation'
+  export default async function ProtectedPage() {
+    const user = await getUser()
+    if (!user) redirect('/auth/login')
+    return <div>Welcome {user.email}!</div>
+  }
+  ```
+- **Use auth state in client:**
+  ```ts
+  import { useAuth } from '@/hooks/use-auth'
+  const { user, loading } = useAuth()
+  ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment
+- You can deploy on [Vercel](https://vercel.com/) or any platform supporting Next.js and environment variables.
+- Make sure to set the same environment variables in your deployment platform.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+For more details, see the code and comments in each file. This README covers the essentials to get started and run the app securely with authentication.

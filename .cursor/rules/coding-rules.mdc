@@ -1,0 +1,14 @@
+---
+description: apply these rules when develop the code
+alwaysApply: true
+---
+
+## Coding Best Practices
+
+- Implement server actions for all backend logic.
+- Separate logic into distinct files if a single file exceeds 300 lines of code to enhance maintainability and readability.
+- Encapsulate client-side logic within React hooks.
+- Ensure separation of HTML structure from client-side logic.
+- Adhere strictly to the SOLID and DRY principles in all coding activities.
+- The layout implementation shall consistently utilize ShadcnUI components to ensure design consistency and adherence to established standards.
+- All type and interface should be defined under `types` folder with format `{entity}.type.ts`
