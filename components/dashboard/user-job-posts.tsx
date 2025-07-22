@@ -7,18 +7,41 @@ import { Button } from '@/components/ui/button'
 import { JobPostCard } from '@/components/jobs/job-post-card'
 import { JobPostFilters } from '@/components/jobs/job-post-filters'
 import { DeleteJobDialog } from '@/components/jobs/delete-job-dialog'
-import { useUserJobPosts, useDebounce } from '@/hooks/use-job-posts'
+import { usePaginatedUserJobPosts, useDebounce } from '@/hooks/use-job-posts'
+import { Pagination } from '@/components/ui/pagination'
 import { toggleJobPostStatusAction } from '@/lib/jobs/actions'
 import { Plus, Briefcase, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
-import type { JobPost, JobPostFilters as FilterType } from '@/types/job.type'
+import type { JobPost, JobPostFiltersWithPagination } from '@/types/job.type'
 
 export function UserJobPosts() {
   const router = useRouter()
-  const [filters, setFilters] = useState<FilterType>({})
+  const [filters, setFilters] = useState<JobPostFiltersWithPagination>({ page: 1, limit: 10 })
   const debouncedFilters = useDebounce(filters, 400)
-  const { jobs, loading, error, refetch } = useUserJobPosts(debouncedFilters)
+  const { jobs, pagination, loading, error, refetch } = usePaginatedUserJobPosts(debouncedFilters)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  const handlePageChange = (page: number) => {
+    setFilters(prev => ({ ...prev, page }))
+  }
+
+  const handleFiltersChange = (newFilters: Partial<JobPostFiltersWithPagination>) => {
+    // Check if this is a clear operation (only has page and/or limit)
+    const filterKeys = Object.keys(newFilters).filter(key => key !== 'page' && key !== 'limit')
+    const isClearOperation = filterKeys.length === 0 && Object.keys(newFilters).length <= 2
+    
+    if (isClearOperation) {
+      // For clear operations, replace filters entirely but preserve limit
+      setFilters({
+        page: 1,
+        limit: filters.limit || 10,
+        ...newFilters
+      })
+    } else {
+      // For normal filter changes, merge and reset to page 1
+      setFilters(prev => ({ ...prev, ...newFilters, page: 1 }))
+    }
+  }
 
   const handleEdit = (job: JobPost) => {
     router.push(`/jobs/${job.id}/edit`)
@@ -99,7 +122,9 @@ export function UserJobPosts() {
               <CardDescription>
                 {jobs.length === 0 
                   ? 'You haven\'t created any job postings yet' 
-                  : `${jobs.length} job posting${jobs.length === 1 ? '' : 's'} • ${jobs.length} shown`
+                  : pagination 
+                    ? `${pagination.totalItems} job posting${pagination.totalItems === 1 ? '' : 's'} • Showing page ${pagination.page} of ${pagination.totalPages}`
+                    : `${jobs.length} job posting${jobs.length === 1 ? '' : 's'}`
                 }
               </CardDescription>
             </div>
@@ -118,7 +143,7 @@ export function UserJobPosts() {
               {/* Filters */}
               <JobPostFilters
                 filters={filters}
-                onFiltersChange={setFilters}
+                onFiltersChange={handleFiltersChange}
                 showStatusFilter={true}
                 className="border-0 shadow-none p-0"
               />
@@ -160,6 +185,18 @@ export function UserJobPosts() {
                       )}
                     </div>
                   ))}
+                  
+                  {/* Pagination */}
+                  {pagination && pagination.totalPages > 1 && (
+                    <div className="flex justify-center mt-6">
+                      <Pagination
+                        currentPage={pagination.page}
+                        totalPages={pagination.totalPages}
+                        onPageChange={handlePageChange}
+                        className="w-full max-w-md"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

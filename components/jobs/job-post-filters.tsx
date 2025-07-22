@@ -8,11 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Search, Filter, X } from 'lucide-react'
 import { JOB_TYPE_OPTIONS, JOB_STATUS_OPTIONS } from '@/types/job.type'
-import type { JobPostFilters } from '@/types/job.type'
+import type { JobPostFilters, JobPostFiltersWithPagination } from '@/types/job.type'
 
 interface JobPostFiltersProps {
-  filters: JobPostFilters
-  onFiltersChange: (filters: JobPostFilters) => void
+  filters: JobPostFilters | JobPostFiltersWithPagination
+  onFiltersChange: (filters: Partial<JobPostFilters | JobPostFiltersWithPagination>) => void
   showStatusFilter?: boolean
   className?: string
 }
@@ -26,19 +26,40 @@ export function JobPostFilters({
   const [isExpanded, setIsExpanded] = useState(false)
 
   const updateFilter = (key: keyof JobPostFilters, value: string | undefined) => {
-    onFiltersChange({
+    const updatedFilters: JobPostFilters | JobPostFiltersWithPagination = {
       ...filters,
       [key]: value || undefined,
-    })
+    }
+    
+    // If this is a search filter change and we have pagination, reset to page 1
+    if ('page' in filters) {
+      (updatedFilters as JobPostFiltersWithPagination).page = 1
+    }
+    
+    onFiltersChange(updatedFilters)
   }
 
   const clearFilters = () => {
-    onFiltersChange({})
+    // Preserve pagination settings if they exist
+    const paginationSettings: Partial<JobPostFiltersWithPagination> = {}
+    if ('page' in filters) {
+      paginationSettings.page = 1
+    }
+    if ('limit' in filters) {
+      paginationSettings.limit = filters.limit
+    }
+    
+    console.log('Clearing filters. Sending:', paginationSettings)
+    console.log('Current filters before clear:', filters)
+    onFiltersChange(paginationSettings)
   }
 
-  const hasActiveFilters = Object.values(filters).some(value => value && value.length > 0)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const activeFilterCount = Object.entries(filters).filter(([_, value]) => 
+  // Calculate active filters excluding pagination fields
+  const filterEntries = Object.entries(filters).filter(([key]) => 
+    key !== 'page' && key !== 'limit'
+  )
+  const hasActiveFilters = filterEntries.some(([_, value]) => value && value.length > 0)
+  const activeFilterCount = filterEntries.filter(([_, value]) => 
     value && value.length > 0
   ).length
 

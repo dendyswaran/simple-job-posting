@@ -34,6 +34,8 @@ NEXT_PUBLIC_SUPABASE_URL=SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=ANON_KEY
 NEXT_SUPABASE_SERVICE_ROLE_KEY=ROLE_KEY
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+# Redis configuration (optional - falls back to memory if not provided)
+REDIS_URL=redis://localhost:6379
 ```
 
 ### 3. Install Dependencies & Run
@@ -45,6 +47,13 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to view the app.
 
+## Redis Setup (Optional)
+The app uses Redis for caching job listings to improve performance. If Redis is not available, the app will work without caching.
+
+- **Local development**: Install Redis locally or use Docker: `docker run -d -p 6379:6379 redis:alpine`
+- **Production**: Use Redis Cloud, AWS ElastiCache, or any Redis provider
+- **Environment variable**: Set `REDIS_URL` to your Redis connection string
+
 ## Authentication Features
 - User registration and login (Supabase Auth)
 - Email verification
@@ -54,7 +63,10 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 - Server actions for all backend logic
 - React hooks for client-side state
 
-## File Structure (Key Parts)
+## File Structure and Architecture (Key Parts)
+
+The integration between the Supabase platform and Next.js is implemented at the backend layer to enhance security and prevent exposure of sensitive data.
+
 ```
 app/
   auth/         # Auth pages (login, signup, callback)
@@ -66,6 +78,7 @@ components/
 hooks/          # use-auth, use-job-posts, etc.
 lib/
   auth/         # Auth server actions
+  jobs/         # Job server actions
   supabase/     # Supabase client/server
 middleware.ts   # Route protection
 ```
@@ -90,6 +103,12 @@ middleware.ts   # Route protection
 ## Deployment
 - You can deploy on [Vercel](https://vercel.com/) or any platform supporting Next.js and environment variables.
 - Make sure to set the same environment variables in your deployment platform.
+
+## What can be improved?
+- SEO implementation
+- Enable AI to enhance the job creation. (`/lib/jobs/llm.actions.ts`)
+- Improve the security (rate limiting, captcha)
+- Allow user to apply job
 
 ---
 

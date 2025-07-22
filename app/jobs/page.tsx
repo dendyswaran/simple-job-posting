@@ -5,17 +5,42 @@ import { Header } from '@/components/layout/header'
 import { JobPostCard } from '@/components/jobs/job-post-card'
 import { JobPostFilters } from '@/components/jobs/job-post-filters'
 import { Button } from '@/components/ui/button'
-import { useJobPosts, useDebounce } from '@/hooks/use-job-posts'
+import { usePaginatedJobPosts, useDebounce } from '@/hooks/use-job-posts'
+import { Pagination } from '@/components/ui/pagination'
 import { useAuth } from '@/hooks/use-auth'
 import { Plus, Briefcase } from 'lucide-react'
 import Link from 'next/link'
-import type { JobPostFilters as FilterType } from '@/types/job.type'
+import type { JobPostFiltersWithPagination } from '@/types/job.type'
 
 export default function JobsPage() {
   const { user } = useAuth()
-  const [filters, setFilters] = useState<FilterType>({})
+  const [filters, setFilters] = useState<JobPostFiltersWithPagination>({ page: 1, limit: 10 })
   const debouncedFilters = useDebounce(filters, 400)
-  const { jobs, loading, error } = useJobPosts(debouncedFilters)
+  const { jobs, pagination, loading, error, refetch } = usePaginatedJobPosts(debouncedFilters)
+
+  const handlePageChange = (page: number) => {
+    setFilters(prev => ({ ...prev, page }))
+    // Scroll to top when changing pages
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleFiltersChange = (newFilters: Partial<JobPostFiltersWithPagination>) => {
+    // Check if this is a clear operation (only has page and/or limit)
+    const filterKeys = Object.keys(newFilters).filter(key => key !== 'page' && key !== 'limit')
+    const isClearOperation = filterKeys.length === 0 && Object.keys(newFilters).length <= 2
+    
+    if (isClearOperation) {
+      // For clear operations, replace filters entirely but preserve limit
+      setFilters({
+        page: 1,
+        limit: filters.limit || 10,
+        ...newFilters
+      })
+    } else {
+      // For normal filter changes, merge and reset to page 1
+      setFilters(prev => ({ ...prev, ...newFilters, page: 1 }))
+    }
+  }
 
   if (loading) {
     return (
@@ -71,7 +96,9 @@ export default function JobsPage() {
             <p className="text-gray-600 mt-1">
               {jobs.length === 0 
                 ? 'No job postings found' 
-                : `${jobs.length} job${jobs.length === 1 ? '' : 's'} available`
+                : pagination 
+                  ? `Showing ${jobs.length} of ${pagination.totalItems} job${pagination.totalItems === 1 ? '' : 's'}`
+                  : `${jobs.length} job${jobs.length === 1 ? '' : 's'} available`
               }
             </p>
           </div>
@@ -92,7 +119,7 @@ export default function JobsPage() {
           <div className="lg:col-span-1">
             <JobPostFilters
               filters={filters}
-              onFiltersChange={setFilters}
+              onFiltersChange={handleFiltersChange}
               className="sticky top-4"
             />
           </div>
@@ -118,18 +145,31 @@ export default function JobsPage() {
                 )}
               </div>
             ) : (
-              <div className="grid gap-6">
+              <div className="grid gap-4">
                 {jobs.map((job) => (
                   <JobPostCard
                     key={job.id}
                     job={job}
+                    showActions={user?.id === job.user_id}
                     currentUserId={user?.id}
                   />
                 ))}
-              </div>
-            )}
-          </div>
-        </div>
+                  
+                  {/* Pagination */}
+                  {pagination && pagination.totalPages > 1 && (
+                    <div className="flex justify-center mt-8">
+                      <Pagination
+                        currentPage={pagination.page}
+                        totalPages={pagination.totalPages}
+                        onPageChange={handlePageChange}
+                        className="w-full max-w-md"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>        
       </main>
     </div>
   )

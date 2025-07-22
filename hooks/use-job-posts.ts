@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { JobPost, JobPostFilters } from '@/types/job.type'
-import { getUserJobPostsWithFiltersAction } from '@/lib/jobs/actions'
+import type { JobPost, JobPostFilters, PaginatedJobPostsResponse, JobPostFiltersWithPagination } from '@/types/job.type'
+import { getPaginatedJobPostsAction, getPaginatedUserJobPostsAction } from '@/lib/jobs/actions'
 import { getJobPostByIdAction } from '@/lib/jobs/actions'
 import { useRef } from 'react'
 
@@ -93,7 +93,7 @@ export function useUserJobPosts(filters?: JobPostFilters): UseJobPostsReturn {
     setError(null)
 
     try {
-      const response = await getUserJobPostsWithFiltersAction(filters)
+      const response = await getPaginatedUserJobPostsAction(filters)
       if (response.error) {
         setError(response.error)
       } else {
@@ -179,4 +179,98 @@ export function useDebounce<T>(value: T, delay: number): T {
   }, [value, delay])
 
   return debouncedValue
+}
+
+interface UsePaginatedJobPostsReturn {
+  jobs: JobPost[]
+  pagination: PaginatedJobPostsResponse['pagination'] | null
+  loading: boolean
+  error: string | null
+  refetch: () => Promise<void>
+}
+
+// Hook for paginated job posts with filters
+export function usePaginatedJobPosts(filters?: JobPostFiltersWithPagination): UsePaginatedJobPostsReturn {
+  const [jobs, setJobs] = useState<JobPost[]>([])
+  const [pagination, setPagination] = useState<PaginatedJobPostsResponse['pagination'] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchJobs = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await getPaginatedJobPostsAction(filters)
+      if (response.error) {
+        setError(response.error)
+        setJobs([])
+        setPagination(null)
+      } else {
+        setJobs(response.data)
+        setPagination(response.pagination)
+      }
+    } catch (err) {
+      setError('Failed to fetch job postings')
+      setJobs([])
+      setPagination(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchJobs()
+  }, [filters?.status, filters?.type, filters?.company, filters?.location, filters?.search, filters?.page, filters?.limit])
+
+  return {
+    jobs,
+    pagination,
+    loading,
+    error,
+    refetch: fetchJobs,
+  }
+}
+
+// Hook for paginated user job posts with filters
+export function usePaginatedUserJobPosts(filters?: JobPostFiltersWithPagination): UsePaginatedJobPostsReturn {
+  const [jobs, setJobs] = useState<JobPost[]>([])
+  const [pagination, setPagination] = useState<PaginatedJobPostsResponse['pagination'] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchUserJobs = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await getPaginatedUserJobPostsAction(filters)
+      if (response.error) {
+        setError(response.error)
+        setJobs([])
+        setPagination(null)
+      } else {
+        setJobs(response.data)
+        setPagination(response.pagination)
+      }
+    } catch (err) {
+      setError('Failed to fetch your job postings')
+      setJobs([])
+      setPagination(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchUserJobs()
+  }, [filters?.status, filters?.type, filters?.company, filters?.location, filters?.search, filters?.page, filters?.limit])
+
+  return {
+    jobs,
+    pagination,
+    loading,
+    error,
+    refetch: fetchUserJobs,
+  }
 } 

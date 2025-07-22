@@ -85,6 +85,32 @@ export interface JobPostsResponse {
   error?: string
 }
 
+// Paginated Job Posts Response
+export interface PaginatedJobPostsResponse {
+  data: JobPost[]
+  pagination: {
+    page: number
+    limit: number
+    totalItems: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPreviousPage: boolean
+  }
+  error?: string
+}
+
+// Pagination Parameters
+export interface PaginationParams {
+  page?: number
+  limit?: number
+}
+
+// Job Post Filters with Pagination
+export interface JobPostFiltersWithPagination extends JobPostFilters {
+  page?: number
+  limit?: number
+}
+
 // Job Post Action Result
 export interface JobPostActionResult {
   success: boolean
